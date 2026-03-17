@@ -1,31 +1,22 @@
 {
-  "algorithm": "RR",
-  "time_quantum": 2,
-  "context_switches": 13,
+  "algorithm": "FCFS",
+  "time_quantum": null,
+  "context_switches": 4,
   "cpu_utilization": 100.00,
-  "avg_waiting": 13.00,
-  "avg_turnaround": 18.60,
+  "avg_waiting": 11.40,
+  "avg_turnaround": 17.00,
   "processes": [
-    {"pid":1,"arrival":0,"burst":8,"priority":2,"completion":24,"waiting":16,"turnaround":24,"response":0},
-    {"pid":2,"arrival":1,"burst":4,"priority":1,"completion":14,"waiting":9,"turnaround":13,"response":1},
-    {"pid":3,"arrival":2,"burst":9,"priority":3,"completion":28,"waiting":17,"turnaround":26,"response":2},
-    {"pid":4,"arrival":3,"burst":5,"priority":2,"completion":25,"waiting":17,"turnaround":22,"response":5},
-    {"pid":5,"arrival":4,"burst":2,"priority":4,"completion":12,"waiting":6,"turnaround":8,"response":6}
+    {"pid":1,"arrival":0,"burst":8,"priority":2,"completion":8,"waiting":0,"turnaround":8,"response":0},
+    {"pid":2,"arrival":1,"burst":4,"priority":1,"completion":12,"waiting":7,"turnaround":11,"response":7},
+    {"pid":3,"arrival":2,"burst":9,"priority":3,"completion":21,"waiting":10,"turnaround":19,"response":10},
+    {"pid":4,"arrival":3,"burst":5,"priority":2,"completion":26,"waiting":18,"turnaround":23,"response":18},
+    {"pid":5,"arrival":4,"burst":2,"priority":4,"completion":28,"waiting":22,"turnaround":24,"response":22}
   ],
   "gantt": [
-    {"pid":1,"start":0,"end":2},
-    {"pid":2,"start":2,"end":4},
-    {"pid":3,"start":4,"end":6},
-    {"pid":1,"start":6,"end":8},
-    {"pid":4,"start":8,"end":10},
-    {"pid":5,"start":10,"end":12},
-    {"pid":2,"start":12,"end":14},
-    {"pid":3,"start":14,"end":16},
-    {"pid":1,"start":16,"end":18},
-    {"pid":4,"start":18,"end":20},
-    {"pid":3,"start":20,"end":22},
-    {"pid":1,"start":22,"end":24},
-    {"pid":4,"start":24,"end":25},
-    {"pid":3,"start":25,"end":28}
+    {"pid":1,"start":0,"end":8},
+    {"pid":2,"start":8,"end":12},
+    {"pid":3,"start":12,"end":21},
+    {"pid":4,"start":21,"end":26},
+    {"pid":5,"start":26,"end":28}
   ]
 }

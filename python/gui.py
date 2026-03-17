@@ -361,22 +361,50 @@ class ControlBar(ttk.LabelFrame):
 
 # ═══════════════════════════════════════════════════════════════════
 class EmbeddedChart(ttk.Frame):
-    """Resizable matplotlib canvas with navigation toolbar."""
+    """Matplotlib canvas with navigation toolbar that resizes with the window."""
 
     def __init__(self, parent, **kw):
         super().__init__(parent, **kw)
         self._canvas   = None
         self._toolbar  = None
+        self._fig      = None
+        self._resize_id = None
+        self.bind("<Configure>", self._on_resize)
 
     def show_figure(self, fig):
+        """Replace the current figure with a new one."""
         if self._canvas:
             self._toolbar.destroy()
             self._canvas.get_tk_widget().destroy()
+        self._fig     = fig
         self._canvas  = FigureCanvasTkAgg(fig, master=self)
         self._toolbar = NavigationToolbar2Tk(self._canvas, self)
-        self._toolbar.update()
+        self._toolbar.pack(side="bottom", fill="x")
         self._canvas.get_tk_widget().pack(fill="both", expand=True)
-        self._canvas.draw()
+        self._canvas.draw_idle()
+
+    def _on_resize(self, event):
+        """Debounced resize: update the figure size to match the widget."""
+        if self._fig is None or self._canvas is None:
+            return
+        # Debounce – only act 120 ms after the last resize event
+        if self._resize_id:
+            self.after_cancel(self._resize_id)
+        self._resize_id = self.after(120, self._do_resize, event.width, event.height)
+
+    def _do_resize(self, w_px, h_px):
+        self._resize_id = None
+        if self._fig is None or w_px < 50 or h_px < 50:
+            return
+        dpi   = self._fig.get_dpi()
+        new_w = w_px / dpi
+        new_h = (h_px - 32) / dpi   # subtract toolbar height (~32 px)
+        # Keep the figure's original height if the widget is taller
+        orig_w, orig_h = self._fig.get_size_inches()
+        # Don't shrink below the figure's natural height
+        new_h = max(new_h, orig_h * 0.6)
+        self._fig.set_size_inches(new_w, orig_h, forward=False)
+        self._canvas.draw_idle()
 
 
 # ═══════════════════════════════════════════════════════════════════
