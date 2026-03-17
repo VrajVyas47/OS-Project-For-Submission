@@ -1,0 +1,24 @@
+{
+  "algorithm": "SJF",
+  "time_quantum": null,
+  "context_switches": 3,
+  "cpu_utilization": 100.00,
+  "avg_waiting": 3.88,
+  "avg_turnaround": 7.13,
+  "processes": [
+    {"pid":0,"arrival":0,"burst":0,"completion":0,"waiting":0,"turnaround":0,"response":0},
+    {"pid":0,"arrival":0,"burst":0,"completion":0,"waiting":0,"turnaround":0,"response":0},
+    {"pid":0,"arrival":0,"burst":0,"completion":0,"waiting":0,"turnaround":0,"response":0},
+    {"pid":0,"arrival":0,"burst":0,"completion":0,"waiting":0,"turnaround":0,"response":0},
+    {"pid":1,"arrival":0,"burst":8,"completion":8,"waiting":0,"turnaround":8,"response":0},
+    {"pid":2,"arrival":1,"burst":4,"completion":12,"waiting":7,"turnaround":11,"response":7},
+    {"pid":3,"arrival":2,"burst":9,"completion":26,"waiting":15,"turnaround":24,"response":15},
+    {"pid":4,"arrival":3,"burst":5,"completion":17,"waiting":9,"turnaround":14,"response":9}
+  ],
+  "gantt": [
+    {"pid":1, "start":0, "end":8},
+    {"pid":2, "start":8, "end":12},
+    {"pid":4, "start":12, "end":17},
+    {"pid":3, "start":17, "end":26}
+  ]
+}
