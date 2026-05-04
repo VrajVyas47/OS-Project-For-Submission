@@ -1,21 +1,12 @@
-CC      = gcc
-CFLAGS  = -Wall -Wextra -O2 -std=c11
-TARGET  = scheduler
+all: scheduler
 
-SRCS = common.c fcfs.c sjf.c srtf.c priority_np.c priority_p.c round_robin.c
-OBJS = $(SRCS:.c=.o)
+OBJS = scheduler.o fcfs.o sjf.o srtf.o priority_np.o priority_p.o round_robin.o hrrn.o ljf.o lrtf.o
 
-.PHONY: all clean rebuild
-
-all: $(TARGET)
-
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
+scheduler: $(OBJS)
+	gcc -Wall -O2 -o scheduler $(OBJS)
 
 %.o: %.c scheduler.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	gcc -Wall -O2 -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET)
-
-rebuild: clean all
+	rm -f scheduler *.o

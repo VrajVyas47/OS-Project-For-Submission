@@ -4,7 +4,7 @@
 #include <limits.h>
 #include "scheduler.h"
 
-void priority_np(Process p[], int n, Result *r) {
+void hrrn(Process p[], int n, Result *r) {
     qsort(p, n, sizeof(Process), compare_at_pid);
     int current_time = 0;
     int completed = 0;
@@ -13,13 +13,16 @@ void priority_np(Process p[], int n, Result *r) {
     
     while (completed < n) {
         int idx = -1;
-        int min_priority = INT_MAX;
+        double max_rr = -1.0;
+        
         for (int i = 0; i < n; i++) {
             if (p[i].at <= current_time && !is_completed[i]) {
-                if (p[i].priority < min_priority) {
-                    min_priority = p[i].priority;
+                int start_wait = current_time - p[i].at;
+                double rr = (double)(start_wait + p[i].bt) / p[i].bt;
+                if (rr > max_rr) {
+                    max_rr = rr;
                     idx = i;
-                } else if (p[i].priority == min_priority) {
+                } else if (rr == max_rr) {
                     if (p[i].at < p[idx].at) {
                         idx = i;
                     } else if (p[i].at == p[idx].at && p[i].pid < p[idx].pid) {
@@ -53,7 +56,7 @@ void priority_np(Process p[], int n, Result *r) {
     
     memcpy(r->processes, p, n * sizeof(Process));
     r->n = n;
-    strcpy(r->algorithm, "Priority_NP");
+    strcpy(r->algorithm, "HRRN");
     r->time_quantum = -1;
     calculate_metrics(r);
 }

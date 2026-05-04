@@ -6,25 +6,41 @@ from visualize import show_gantt
 from table import show_table
 
 def build_c():
-    """Compile scheduler.c using gcc. Exit on failure."""
+    """Compile using gcc to support Windows without make. Exit on failure."""
     os.makedirs('output', exist_ok=True)
-    r = subprocess.run(
-        ['gcc', '-Wall', '-O2', 'c_code/scheduler.c', '-o', 'c_code/scheduler'],
-        capture_output=True, text=True
-    )
-    if r.returncode != 0:
-        print('Build failed:\n', r.stderr, file=sys.stderr)
-        sys.exit(1)
+    import glob
+    c_files = glob.glob('c_code/*.c')
+    
+    # On Windows, we append .exe to the output file to be safe, but gcc usually does it.
+    exe_name = 'c_code/scheduler.exe' if os.name == 'nt' else 'c_code/scheduler'
+    
+    cmd = ['gcc', '-Wall', '-O2'] + c_files + ['-o', exe_name]
+    
+    try:
+        r = subprocess.run(
+            cmd,
+            capture_output=True, text=True
+        )
+        if r.returncode != 0:
+            print('Build failed:\n', r.stderr, file=sys.stderr)
+            raise Exception(f"Build failed:\n{r.stderr}")
+    except FileNotFoundError:
+        raise Exception("gcc compiler not found. Please ensure gcc is installed and in your system PATH.")
 
 def run_scheduler(algo, n, processes, quantum=None):
     """Build the argument list and call the C binary."""
-    args = ['./c_code/scheduler', '--algo', algo, '--n', str(n)]
+    exe_name = './c_code/scheduler.exe' if os.name == 'nt' else './c_code/scheduler'
+    args = [exe_name, '--algo', algo, '--n', str(n)]
     for p in processes:
         args += ['--pid', str(p['pid']), '--at', str(p['at']),
                  '--bt', str(p['bt']), '--priority', str(p.get('priority', 0))]
     if quantum: 
         args += ['--quantum', str(quantum)]
-    subprocess.run(args, check=True)
+    
+    # Capture output to give helpful error messages
+    r = subprocess.run(args, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise Exception(f"Scheduler execution failed!\nCommand: {' '.join(args)}\nError: {r.stderr}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -36,7 +52,8 @@ if __name__ == '__main__':
     build_c()
     
     if args.file:
-        cmd = ['./c_code/scheduler', '--file', args.file, '--algo', args.algo]
+        exe_name = './c_code/scheduler.exe' if os.name == 'nt' else './c_code/scheduler'
+        cmd = [exe_name, '--file', args.file, '--algo', args.algo]
         if args.quantum:
             cmd += ['--quantum', str(args.quantum)]
         subprocess.run(cmd, check=True)

@@ -63,383 +63,6 @@ void add_gantt(Result *r, int pid, int start, int end) {
     }
 }
 
-void fcfs(Process p[], int n, Result *r) {
-    qsort(p, n, sizeof(Process), compare_at_pid);
-    int current_time = 0;
-    r->gantt_len = 0;
-    
-    for (int i = 0; i < n; i++) {
-        if (current_time < p[i].at) {
-            add_gantt(r, -1, current_time, p[i].at);
-            current_time = p[i].at;
-        }
-        p[i].first_start = current_time;
-        add_gantt(r, p[i].pid, current_time, current_time + p[i].bt);
-        current_time += p[i].bt;
-        p[i].ct = current_time;
-        p[i].tat = p[i].ct - p[i].at;
-        p[i].wt = p[i].tat - p[i].bt;
-        p[i].rt = p[i].first_start - p[i].at;
-    }
-    
-    memcpy(r->processes, p, n * sizeof(Process));
-    r->n = n;
-    strcpy(r->algorithm, "FCFS");
-    r->time_quantum = -1;
-    calculate_metrics(r);
-}
-
-void sjf(Process p[], int n, Result *r) {
-    qsort(p, n, sizeof(Process), compare_at_pid);
-    int current_time = 0;
-    int completed = 0;
-    int is_completed[MAX_PROCESSES] = {0};
-    r->gantt_len = 0;
-    
-    while (completed < n) {
-        int idx = -1;
-        int min_bt = INT_MAX;
-        for (int i = 0; i < n; i++) {
-            if (p[i].at <= current_time && !is_completed[i]) {
-                if (p[i].bt < min_bt) {
-                    min_bt = p[i].bt;
-                    idx = i;
-                } else if (p[i].bt == min_bt) {
-                    if (p[i].at < p[idx].at) {
-                        idx = i;
-                    } else if (p[i].at == p[idx].at && p[i].pid < p[idx].pid) {
-                        idx = i;
-                    }
-                }
-            }
-        }
-        
-        if (idx != -1) {
-            p[idx].first_start = current_time;
-            add_gantt(r, p[idx].pid, current_time, current_time + p[idx].bt);
-            current_time += p[idx].bt;
-            p[idx].ct = current_time;
-            p[idx].tat = p[idx].ct - p[idx].at;
-            p[idx].wt = p[idx].tat - p[idx].bt;
-            p[idx].rt = p[idx].first_start - p[idx].at;
-            is_completed[idx] = 1;
-            completed++;
-        } else {
-            int next_at = INT_MAX;
-            for (int i = 0; i < n; i++) {
-                if (!is_completed[i] && p[i].at < next_at) {
-                    next_at = p[i].at;
-                }
-            }
-            add_gantt(r, -1, current_time, next_at);
-            current_time = next_at;
-        }
-    }
-    
-    memcpy(r->processes, p, n * sizeof(Process));
-    r->n = n;
-    strcpy(r->algorithm, "SJF");
-    r->time_quantum = -1;
-    calculate_metrics(r);
-}
-
-void srtf(Process p[], int n, Result *r) {
-    qsort(p, n, sizeof(Process), compare_at_pid);
-    for (int i = 0; i < n; i++) {
-        p[i].rem_bt = p[i].bt;
-        p[i].first_start = -1;
-    }
-    
-    int current_time = 0;
-    int completed = 0;
-    r->gantt_len = 0;
-    int prev_idx = -1;
-    
-    while (completed < n) {
-        int idx = -1;
-        int min_rem_bt = INT_MAX;
-        for (int i = 0; i < n; i++) {
-            if (p[i].at <= current_time && p[i].rem_bt > 0) {
-                if (p[i].rem_bt < min_rem_bt) {
-                    min_rem_bt = p[i].rem_bt;
-                    idx = i;
-                } else if (p[i].rem_bt == min_rem_bt) {
-                    if (idx == -1) idx = i;
-                    else if (prev_idx == i) idx = i; // Do not preempt if equal
-                    else if (prev_idx != idx && p[i].at < p[idx].at) idx = i;
-                    else if (prev_idx != idx && p[i].at == p[idx].at && p[i].pid < p[idx].pid) idx = i;
-                }
-            }
-        }
-        
-        if (idx != -1) {
-            if (p[idx].first_start == -1) {
-                p[idx].first_start = current_time;
-            }
-            
-            int next_arrival = INT_MAX;
-            for (int i = 0; i < n; i++) {
-                if (p[i].at > current_time && p[i].at < next_arrival) {
-                    next_arrival = p[i].at;
-                }
-            }
-            
-            int run_time = p[idx].rem_bt;
-            if (next_arrival != INT_MAX && (next_arrival - current_time) < run_time) {
-                run_time = next_arrival - current_time;
-            }
-            
-            add_gantt(r, p[idx].pid, current_time, current_time + run_time);
-            p[idx].rem_bt -= run_time;
-            current_time += run_time;
-            
-            if (p[idx].rem_bt == 0) {
-                p[idx].ct = current_time;
-                p[idx].tat = p[idx].ct - p[idx].at;
-                p[idx].wt = p[idx].tat - p[idx].bt;
-                p[idx].rt = p[idx].first_start - p[idx].at;
-                completed++;
-            }
-            prev_idx = idx;
-        } else {
-            int next_at = INT_MAX;
-            for (int i = 0; i < n; i++) {
-                if (p[i].rem_bt > 0 && p[i].at < next_at) {
-                    next_at = p[i].at;
-                }
-            }
-            add_gantt(r, -1, current_time, next_at);
-            current_time = next_at;
-            prev_idx = -1;
-        }
-    }
-    
-    memcpy(r->processes, p, n * sizeof(Process));
-    r->n = n;
-    strcpy(r->algorithm, "SRTF");
-    r->time_quantum = -1;
-    calculate_metrics(r);
-}
-
-void priority_np(Process p[], int n, Result *r) {
-    qsort(p, n, sizeof(Process), compare_at_pid);
-    int current_time = 0;
-    int completed = 0;
-    int is_completed[MAX_PROCESSES] = {0};
-    r->gantt_len = 0;
-    
-    while (completed < n) {
-        int idx = -1;
-        int min_priority = INT_MAX;
-        for (int i = 0; i < n; i++) {
-            if (p[i].at <= current_time && !is_completed[i]) {
-                if (p[i].priority < min_priority) {
-                    min_priority = p[i].priority;
-                    idx = i;
-                } else if (p[i].priority == min_priority) {
-                    if (p[i].at < p[idx].at) {
-                        idx = i;
-                    } else if (p[i].at == p[idx].at && p[i].pid < p[idx].pid) {
-                        idx = i;
-                    }
-                }
-            }
-        }
-        
-        if (idx != -1) {
-            p[idx].first_start = current_time;
-            add_gantt(r, p[idx].pid, current_time, current_time + p[idx].bt);
-            current_time += p[idx].bt;
-            p[idx].ct = current_time;
-            p[idx].tat = p[idx].ct - p[idx].at;
-            p[idx].wt = p[idx].tat - p[idx].bt;
-            p[idx].rt = p[idx].first_start - p[idx].at;
-            is_completed[idx] = 1;
-            completed++;
-        } else {
-            int next_at = INT_MAX;
-            for (int i = 0; i < n; i++) {
-                if (!is_completed[i] && p[i].at < next_at) {
-                    next_at = p[i].at;
-                }
-            }
-            add_gantt(r, -1, current_time, next_at);
-            current_time = next_at;
-        }
-    }
-    
-    memcpy(r->processes, p, n * sizeof(Process));
-    r->n = n;
-    strcpy(r->algorithm, "Priority_NP");
-    r->time_quantum = -1;
-    calculate_metrics(r);
-}
-
-void priority_p(Process p[], int n, Result *r) {
-    qsort(p, n, sizeof(Process), compare_at_pid);
-    for (int i = 0; i < n; i++) {
-        p[i].rem_bt = p[i].bt;
-        p[i].first_start = -1;
-    }
-    
-    int current_time = 0;
-    int completed = 0;
-    r->gantt_len = 0;
-    int prev_idx = -1;
-    
-    while (completed < n) {
-        int idx = -1;
-        int min_priority = INT_MAX;
-        for (int i = 0; i < n; i++) {
-            if (p[i].at <= current_time && p[i].rem_bt > 0) {
-                if (p[i].priority < min_priority) {
-                    min_priority = p[i].priority;
-                    idx = i;
-                } else if (p[i].priority == min_priority) {
-                    if (idx == -1) idx = i;
-                    else if (prev_idx == i) idx = i; // Do not preempt if equal
-                    else if (prev_idx != idx && p[i].at < p[idx].at) idx = i;
-                    else if (prev_idx != idx && p[i].at == p[idx].at && p[i].pid < p[idx].pid) idx = i;
-                }
-            }
-        }
-        
-        if (idx != -1) {
-            if (p[idx].first_start == -1) {
-                p[idx].first_start = current_time;
-            }
-            
-            int next_arrival = INT_MAX;
-            for (int i = 0; i < n; i++) {
-                if (p[i].at > current_time && p[i].at < next_arrival) {
-                    next_arrival = p[i].at;
-                }
-            }
-            
-            int run_time = p[idx].rem_bt;
-            if (next_arrival != INT_MAX && (next_arrival - current_time) < run_time) {
-                run_time = next_arrival - current_time;
-            }
-            
-            add_gantt(r, p[idx].pid, current_time, current_time + run_time);
-            p[idx].rem_bt -= run_time;
-            current_time += run_time;
-            
-            if (p[idx].rem_bt == 0) {
-                p[idx].ct = current_time;
-                p[idx].tat = p[idx].ct - p[idx].at;
-                p[idx].wt = p[idx].tat - p[idx].bt;
-                p[idx].rt = p[idx].first_start - p[idx].at;
-                completed++;
-            }
-            prev_idx = idx;
-        } else {
-            int next_at = INT_MAX;
-            for (int i = 0; i < n; i++) {
-                if (p[i].rem_bt > 0 && p[i].at < next_at) {
-                    next_at = p[i].at;
-                }
-            }
-            add_gantt(r, -1, current_time, next_at);
-            current_time = next_at;
-            prev_idx = -1;
-        }
-    }
-    
-    memcpy(r->processes, p, n * sizeof(Process));
-    r->n = n;
-    strcpy(r->algorithm, "Priority_P");
-    r->time_quantum = -1;
-    calculate_metrics(r);
-}
-
-void round_robin(Process p[], int n, int quantum, Result *r) {
-    qsort(p, n, sizeof(Process), compare_at_pid);
-    for (int i = 0; i < n; i++) {
-        p[i].rem_bt = p[i].bt;
-        p[i].first_start = -1;
-    }
-    
-    int current_time = 0;
-    int completed = 0;
-    r->gantt_len = 0;
-    
-    int queue[MAX_PROCESSES];
-    int head = 0, tail = 0, count = 0;
-    int in_queue[MAX_PROCESSES] = {0};
-    
-    int p_idx = 0;
-    while (p_idx < n && p[p_idx].at <= current_time) {
-        queue[tail] = p_idx;
-        tail = (tail + 1) % MAX_PROCESSES;
-        count++;
-        in_queue[p_idx] = 1;
-        p_idx++;
-    }
-    
-    while (completed < n) {
-        if (count > 0) {
-            int idx = queue[head];
-            head = (head + 1) % MAX_PROCESSES;
-            count--;
-            
-            if (p[idx].first_start == -1) {
-                p[idx].first_start = current_time;
-            }
-            
-            int run_time = (p[idx].rem_bt > quantum) ? quantum : p[idx].rem_bt;
-            add_gantt(r, p[idx].pid, current_time, current_time + run_time);
-            current_time += run_time;
-            p[idx].rem_bt -= run_time;
-            
-            while (p_idx < n && p[p_idx].at <= current_time) {
-                if (!in_queue[p_idx]) {
-                    queue[tail] = p_idx;
-                    tail = (tail + 1) % MAX_PROCESSES;
-                    count++;
-                    in_queue[p_idx] = 1;
-                }
-                p_idx++;
-            }
-            
-            if (p[idx].rem_bt == 0) {
-                p[idx].ct = current_time;
-                p[idx].tat = p[idx].ct - p[idx].at;
-                p[idx].wt = p[idx].tat - p[idx].bt;
-                p[idx].rt = p[idx].first_start - p[idx].at;
-                completed++;
-            } else {
-                queue[tail] = idx;
-                tail = (tail + 1) % MAX_PROCESSES;
-                count++;
-            }
-        } else {
-            if (p_idx < n) {
-                add_gantt(r, -1, current_time, p[p_idx].at);
-                current_time = p[p_idx].at;
-                while (p_idx < n && p[p_idx].at <= current_time) {
-                    if (!in_queue[p_idx]) {
-                        queue[tail] = p_idx;
-                        tail = (tail + 1) % MAX_PROCESSES;
-                        count++;
-                        in_queue[p_idx] = 1;
-                    }
-                    p_idx++;
-                }
-            } else {
-                // Failsafe to prevent infinite loop if a process is lost
-                break;
-            }
-        }
-    }
-    
-    memcpy(r->processes, p, n * sizeof(Process));
-    r->n = n;
-    strcpy(r->algorithm, "RR");
-    r->time_quantum = quantum;
-    calculate_metrics(r);
-}
-
 void write_json(Result *r) {
     FILE *f = fopen(OUTPUT_PATH, "w");
     if (!f) {
@@ -483,7 +106,7 @@ void write_json(Result *r) {
 }
 
 void parse_args(int argc, char *argv[], char *algo, int *n, Process p[], int *quantum) {
-    *n = 0;
+    int p_count = 0;
     *quantum = -1;
     strcpy(algo, "FCFS");
     
@@ -491,30 +114,32 @@ void parse_args(int argc, char *argv[], char *algo, int *n, Process p[], int *qu
         if (strcmp(argv[i], "--algo") == 0 && i + 1 < argc) {
             strcpy(algo, argv[++i]);
         } else if (strcmp(argv[i], "--n") == 0 && i + 1 < argc) {
-            *n = atoi(argv[++i]);
+            // we will determine n from p_count, but we can consume the arg
+            i++;
         } else if (strcmp(argv[i], "--quantum") == 0 && i + 1 < argc) {
             *quantum = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--pid") == 0 && i + 1 < argc) {
-            p[*n].pid = atoi(argv[++i]);
-            p[*n].priority = 0; // default
+            p[p_count].pid = atoi(argv[++i]);
+            p[p_count].priority = 0; // default
             
             while (i + 1 < argc && strncmp(argv[i+1], "--", 2) == 0) {
                 if (strcmp(argv[i+1], "--at") == 0 && i + 2 < argc) {
-                    p[*n].at = atoi(argv[i+2]);
+                    p[p_count].at = atoi(argv[i+2]);
                     i += 2;
                 } else if (strcmp(argv[i+1], "--bt") == 0 && i + 2 < argc) {
-                    p[*n].bt = atoi(argv[i+2]);
+                    p[p_count].bt = atoi(argv[i+2]);
                     i += 2;
                 } else if (strcmp(argv[i+1], "--priority") == 0 && i + 2 < argc) {
-                    p[*n].priority = atoi(argv[i+2]);
+                    p[p_count].priority = atoi(argv[i+2]);
                     i += 2;
                 } else {
                     break;
                 }
             }
-            (*n)++;
+            p_count++;
         }
     }
+    *n = p_count;
 }
 
 void read_input_file(const char *path, int *n, Process p[]) {
@@ -595,6 +220,12 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
         round_robin(p_copy, n, quantum, &r);
+    } else if (strcmp(algo, "HRRN") == 0) {
+        hrrn(p_copy, n, &r);
+    } else if (strcmp(algo, "LJF") == 0) {
+        ljf(p_copy, n, &r);
+    } else if (strcmp(algo, "LRTF") == 0) {
+        lrtf(p_copy, n, &r);
     } else {
         fprintf(stderr, "Unknown algorithm: %s\n", algo);
         exit(1);

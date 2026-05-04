@@ -4,7 +4,7 @@
 #include <limits.h>
 #include "scheduler.h"
 
-void priority_np(Process p[], int n, Result *r) {
+void ljf(Process p[], int n, Result *r) {
     qsort(p, n, sizeof(Process), compare_at_pid);
     int current_time = 0;
     int completed = 0;
@@ -13,13 +13,13 @@ void priority_np(Process p[], int n, Result *r) {
     
     while (completed < n) {
         int idx = -1;
-        int min_priority = INT_MAX;
+        int max_bt = -1;
         for (int i = 0; i < n; i++) {
             if (p[i].at <= current_time && !is_completed[i]) {
-                if (p[i].priority < min_priority) {
-                    min_priority = p[i].priority;
+                if (p[i].bt > max_bt) {
+                    max_bt = p[i].bt;
                     idx = i;
-                } else if (p[i].priority == min_priority) {
+                } else if (p[i].bt == max_bt) {
                     if (p[i].at < p[idx].at) {
                         idx = i;
                     } else if (p[i].at == p[idx].at && p[i].pid < p[idx].pid) {
@@ -53,7 +53,7 @@ void priority_np(Process p[], int n, Result *r) {
     
     memcpy(r->processes, p, n * sizeof(Process));
     r->n = n;
-    strcpy(r->algorithm, "Priority_NP");
+    strcpy(r->algorithm, "LJF");
     r->time_quantum = -1;
     calculate_metrics(r);
 }

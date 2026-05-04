@@ -4,7 +4,7 @@
 #include <limits.h>
 #include "scheduler.h"
 
-void srtf(Process p[], int n, Result *r) {
+void lrtf(Process p[], int n, Result *r) {
     qsort(p, n, sizeof(Process), compare_at_pid);
     for (int i = 0; i < n; i++) {
         p[i].rem_bt = p[i].bt;
@@ -18,13 +18,13 @@ void srtf(Process p[], int n, Result *r) {
     
     while (completed < n) {
         int idx = -1;
-        int min_rem_bt = INT_MAX;
+        int max_rem_bt = -1;
         for (int i = 0; i < n; i++) {
             if (p[i].at <= current_time && p[i].rem_bt > 0) {
-                if (p[i].rem_bt < min_rem_bt) {
-                    min_rem_bt = p[i].rem_bt;
+                if (p[i].rem_bt > max_rem_bt) {
+                    max_rem_bt = p[i].rem_bt;
                     idx = i;
-                } else if (p[i].rem_bt == min_rem_bt) {
+                } else if (p[i].rem_bt == max_rem_bt) {
                     if (idx == -1) idx = i;
                     else if (prev_idx == i) idx = i; // Do not preempt if equal
                     else if (prev_idx != idx && p[i].at < p[idx].at) idx = i;
@@ -45,7 +45,7 @@ void srtf(Process p[], int n, Result *r) {
                 }
             }
             
-            int run_time = p[idx].rem_bt;
+            int run_time = 1; // Try to run for 1 time unit to check preemptions correctly for lrtf
             if (next_arrival != INT_MAX && (next_arrival - current_time) < run_time) {
                 run_time = next_arrival - current_time;
             }
@@ -77,7 +77,7 @@ void srtf(Process p[], int n, Result *r) {
     
     memcpy(r->processes, p, n * sizeof(Process));
     r->n = n;
-    strcpy(r->algorithm, "SRTF");
+    strcpy(r->algorithm, "LRTF");
     r->time_quantum = -1;
     calculate_metrics(r);
 }

@@ -1,75 +1,47 @@
-"""
-compare.py – Run every algorithm on the same process set and chart the results.
-"""
-
 import json
 import matplotlib.pyplot as plt
 import numpy as np
+from main import build_c, run_scheduler
 
-from runner import run_scheduler, OUTPUT_JSON
+ALGORITHMS = ['FCFS', 'SJF', 'SRTF', 'Priority_NP', 'Priority_P', 'RR', 'HRRN', 'LJF', 'LRTF']
 
-ALGORITHMS = ["FCFS", "SJF", "SRTF", "Priority_NP", "Priority_P", "RR"]
-
-
-def compare_all(processes: list[dict], quantum: int = 2,
-                progress_callback=None) -> dict:
-    """
-    Run all algorithms.  Return dict:  algo -> {avg_wt, avg_tat, cpu_util, ctx}.
-
-    *progress_callback*, if provided, is called as ``cb(current, total)``.
-    """
+def compare_all(processes, quantum=2, progress_callback=None):
+    """Run all algorithms. Return dict: algo -> {avg_wt, avg_tat}."""
     results = {}
-    total   = len(ALGORITHMS)
-
+    total = len(ALGORITHMS)
     for i, algo in enumerate(ALGORITHMS):
-        run_scheduler(algo, processes,
-                      quantum=quantum if algo == "RR" else None)
-        with open(OUTPUT_JSON) as f:
+        run_scheduler(algo, len(processes), processes, quantum if algo == 'RR' else None)
+        with open('output/output.json') as f:
             data = json.load(f)
-        results[algo] = {
-            "avg_wt":   data["avg_waiting"],
-            "avg_tat":  data["avg_turnaround"],
-            "cpu_util": data["cpu_utilization"],
-            "ctx":      data["context_switches"],
-        }
+            results[algo] = {
+                'avg_wt': data['avg_waiting'],
+                'avg_tat': data['avg_turnaround']
+            }
         if progress_callback:
             progress_callback(i + 1, total)
-
     return results
 
+def plot_comparison(results):
+    """Grouped bar chart: X = algorithms, bars = avg_wt and avg_tat."""
+    labels = list(results.keys())
+    avg_wt = [results[algo]['avg_wt'] for algo in labels]
+    avg_tat = [results[algo]['avg_tat'] for algo in labels]
 
-def plot_comparison(results: dict):
-    """Return a matplotlib Figure with grouped bar charts."""
-    labels  = list(results.keys())
-    avg_wt  = [results[a]["avg_wt"]   for a in labels]
-    avg_tat = [results[a]["avg_tat"]  for a in labels]
-    cpu     = [results[a]["cpu_util"] for a in labels]
+    x = np.arange(len(labels))
+    width = 0.35
 
-    x     = np.arange(len(labels))
-    width = 0.3
+    fig, ax = plt.subplots(figsize=(10, 6))
+    rects1 = ax.bar(x - width/2, avg_wt, width, label='Avg Waiting Time', color='#E8834C')
+    rects2 = ax.bar(x + width/2, avg_tat, width, label='Avg Turnaround Time', color='#4C9BE8')
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    ax.set_ylabel('Time')
+    ax.set_title('Algorithm Comparison')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend()
 
-    # ── Waiting & Turnaround
-    r1 = ax1.bar(x - width / 2, avg_wt,  width, label="Avg Waiting",     color="#E8834C")
-    r2 = ax1.bar(x + width / 2, avg_tat, width, label="Avg Turnaround",  color="#4C9BE8")
-    ax1.set_title("Average Times by Algorithm")
-    ax1.set_ylabel("Time units")
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(labels, rotation=15, ha="right")
-    ax1.legend()
-    ax1.bar_label(r1, fmt="%.1f", padding=2, fontsize=8)
-    ax1.bar_label(r2, fmt="%.1f", padding=2, fontsize=8)
-
-    # ── CPU Utilization
-    colors = ["#4CE87A" if v >= 90 else "#E8D44C" if v >= 70 else "#E84C4C"
-              for v in cpu]
-    bars = ax2.bar(labels, cpu, color=colors, edgecolor="black")
-    ax2.set_title("CPU Utilization (%)")
-    ax2.set_ylabel("%")
-    ax2.set_ylim(0, 110)
-    ax2.set_xticklabels(labels, rotation=15, ha="right")
-    ax2.bar_label(bars, fmt="%.1f%%", padding=2, fontsize=8)
+    ax.bar_label(rects1, padding=3, fmt='%.2f')
+    ax.bar_label(rects2, padding=3, fmt='%.2f')
 
     fig.tight_layout()
     return fig
